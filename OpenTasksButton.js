@@ -116,6 +116,8 @@ function openTask(button) {
   body += '"visit_id":"' + visit_id + '"';
   body += '}';
   console.log("body: " + body);
-  window.parent.postMessage(body, window.parent.location.origin);
+  const urlParams = new URLSearchParams(window.location.search);
+  const parentOrigin = urlParams.get('parentOrigin');
+  window.parent.postMessage(body, parentOrigin);
   window.webkit.messageHandlers.svtCreateTaskHandler.postMessage(body);
 }
