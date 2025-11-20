@@ -16,6 +16,7 @@ from typing import Iterable, List
 
 DEFAULT_USERNAME = "drosa_0162500434"
 DEFAULT_PASSWORD = "0cdbb4e6"
+DEFAULT_URL = "https://lms.utsr.multiversity.click/videolezioni/0162206INF01/4"
 
 
 _HEADING_TAGS = {"h1", "h2", "h3", "h4", "h5", "h6"}
@@ -140,11 +141,7 @@ def save_questions(questions: Iterable[str], path: str) -> None:
 
 
 def main(argv: List[str]) -> int:
-    if not argv:
-        print("Utilizzo: python download_questions.py <URL_lezione> [file_output]", file=sys.stderr)
-        return 2
-
-    url = argv[0]
+    url = argv[0] if argv else DEFAULT_URL
     output_path = argv[1] if len(argv) > 1 else None
     try:
         html = fetch_html(url, username=DEFAULT_USERNAME, password=DEFAULT_PASSWORD)

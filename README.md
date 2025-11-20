@@ -6,13 +6,13 @@ Script CLI per scaricare le domande della sezione **Test di fine lezione** da un
 - Python 3 installato
 
 ## Utilizzo
-Esegui lo script indicando l'URL della lezione. Le credenziali richieste sono già incluse nello script.
+Esegui semplicemente lo script: usa automaticamente l'URL della lezione preconfigurata e le credenziali già incluse.
 
 ```bash
-python download_questions.py "https://lms.utsr.multiversity.click/videolezioni/0162206INF01/4"
+python download_questions.py
 ```
 
-Opzionalmente puoi passare un secondo argomento per salvare anche su file:
+Se vuoi indicare un URL diverso oppure salvare anche su file, puoi passare i parametri opzionali:
 
 ```bash
 python download_questions.py "<URL_lezione>" domande.txt
