@@ -98,22 +98,17 @@ class LessonTestParser(HTMLParser):
 def fetch_html(url: str, username: str | None = None, password: str | None = None) -> str:
     """Fetch and decode HTML from the given URL, optionally with basic auth."""
 
-    password_mgr = None
-    opener = None
+    handlers: list[urllib.request.BaseHandler] = [urllib.request.ProxyHandler({})]
 
     if username and password:
         password_mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
         password_mgr.add_password(None, url, username, password)
-        handler = urllib.request.HTTPBasicAuthHandler(password_mgr)
-        opener = urllib.request.build_opener(handler)
+        handlers.append(urllib.request.HTTPBasicAuthHandler(password_mgr))
+
+    opener = urllib.request.build_opener(*handlers)
 
     request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    if opener:
-        with opener.open(request) as response:
-            charset = response.headers.get_content_charset() or "utf-8"
-            return response.read().decode(charset, errors="replace")
-
-    with urllib.request.urlopen(request) as response:
+    with opener.open(request) as response:
         charset = response.headers.get_content_charset() or "utf-8"
         return response.read().decode(charset, errors="replace")
 
