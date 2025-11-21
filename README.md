@@ -4,6 +4,8 @@ Script CLI per scaricare le domande della sezione **Test di fine lezione** da un
 
 ## Requisiti
 - Python 3 installato
+- [Selenium](https://pypi.org/project/selenium/) installato (`pip install selenium`)
+- Un driver disponibile nel `PATH` (es. `chromedriver` o `geckodriver`) per l'esecuzione headless
 
 ## Utilizzo
 Esegui semplicemente lo script: usa automaticamente l'URL della lezione preconfigurata e le credenziali già incluse.

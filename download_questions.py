@@ -7,11 +7,17 @@ heading until the next heading of equal or higher rank. Extracted questions
 are printed to stdout and can optionally be written to a file.
 """
 
+import shutil
 import sys
-import urllib.error
-import urllib.request
 from html.parser import HTMLParser
 from typing import Iterable, List
+
+from selenium import webdriver
+from selenium.common.exceptions import TimeoutException, WebDriverException
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from selenium.webdriver.firefox.service import Service as FirefoxService
 
 
 DEFAULT_USERNAME = "drosa_0162500434"
@@ -95,22 +101,52 @@ class LessonTestParser(HTMLParser):
             self.current_block_buffer.clear()
 
 
-def fetch_html(url: str, username: str | None = None, password: str | None = None) -> str:
-    """Fetch and decode HTML from the given URL, optionally with basic auth."""
+def _inject_basic_auth(url: str, username: str | None, password: str | None) -> str:
+    """Return the URL with embedded basic-auth credentials if provided."""
 
-    handlers: list[urllib.request.BaseHandler] = [urllib.request.ProxyHandler({})]
+    if not username or not password:
+        return url
 
-    if username and password:
-        password_mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
-        password_mgr.add_password(None, url, username, password)
-        handlers.append(urllib.request.HTTPBasicAuthHandler(password_mgr))
+    if "//" not in url:
+        return url
 
-    opener = urllib.request.build_opener(*handlers)
+    scheme, rest = url.split("//", 1)
+    return f"{scheme}//{username}:{password}@{rest}"
 
-    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    with opener.open(request) as response:
-        charset = response.headers.get_content_charset() or "utf-8"
-        return response.read().decode(charset, errors="replace")
+
+def _build_driver() -> webdriver.Remote:
+    """Initialize a headless Selenium driver using an available browser."""
+
+    chrome_driver = shutil.which("chromedriver")
+    if chrome_driver:
+        options = ChromeOptions()
+        options.add_argument("--headless=new")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        return webdriver.Chrome(service=ChromeService(executable_path=chrome_driver), options=options)
+
+    firefox_driver = shutil.which("geckodriver")
+    if firefox_driver:
+        options = FirefoxOptions()
+        options.add_argument("-headless")
+        return webdriver.Firefox(service=FirefoxService(executable_path=firefox_driver), options=options)
+
+    raise RuntimeError(
+        "Nessun driver Selenium disponibile. Installa chromedriver o geckodriver e assicurati che siano nel PATH."
+    )
+
+
+def fetch_html(url: str, username: str | None = None, password: str | None = None, timeout: int = 60) -> str:
+    """Fetch HTML from the given URL using Selenium with optional basic auth."""
+
+    driver = _build_driver()
+    try:
+        driver.set_page_load_timeout(timeout)
+        driver.get(_inject_basic_auth(url, username, password))
+        return driver.page_source
+    finally:
+        driver.quit()
 
 
 def extract_questions(html: str) -> List[str]:
@@ -140,11 +176,8 @@ def main(argv: List[str]) -> int:
     output_path = argv[1] if len(argv) > 1 else None
     try:
         html = fetch_html(url, username=DEFAULT_USERNAME, password=DEFAULT_PASSWORD)
-    except urllib.error.URLError as exc:
-        print(f"Errore di rete durante il download: {exc}", file=sys.stderr)
-        return 2
-    except OSError as exc:
-        print(f"Errore di connessione durante il download: {exc}", file=sys.stderr)
+    except (WebDriverException, TimeoutException, RuntimeError) as exc:
+        print(f"Errore durante il download con Selenium: {exc}", file=sys.stderr)
         return 2
 
     questions = extract_questions(html)
